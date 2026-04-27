@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>복지 상담 사례 브리핑</title>
+    <title>복지 상담 사례 브리핑 - 이미지 최적화</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -11,7 +11,7 @@
         
         body {
             font-family: 'Pretendard', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #f0f2f5;
             overflow: hidden;
         }
 
@@ -19,7 +19,7 @@
             display: none;
             height: 100vh;
             width: 100vw;
-            animation: fadeIn 0.5s ease-in-out;
+            animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .slide.active {
@@ -27,20 +27,42 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .case-image-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 1rem;
+            background-color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .case-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .case-image:hover {
+            transform: scale(1.05);
         }
 
         .progress-bar {
-            height: 4px;
+            height: 5px;
             background: #e5e7eb;
             width: 100%;
             position: fixed;
@@ -51,8 +73,24 @@
 
         .progress-inner {
             height: 100%;
-            background: #2563eb;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: width 0.4s ease;
+        }
+        
+        /* Loading spinner */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -62,21 +100,35 @@
         <div id="progressInner" class="progress-inner" style="width: 0%"></div>
     </div>
 
-    <!-- Navigation Buttons -->
-    <div class="fixed bottom-8 right-8 flex gap-4 z-50">
-        <button onclick="prevSlide()" class="w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors">
-            <i class="fas fa-chevron-left"></i>
+    <!-- Navigation -->
+    <div class="fixed bottom-10 right-10 flex gap-4 z-50">
+        <button onclick="prevSlide()" class="w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-all active:scale-95">
+            <i class="fas fa-arrow-left text-xl"></i>
         </button>
-        <button onclick="nextSlide()" class="w-12 h-12 rounded-full bg-blue-600 shadow-lg flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
-            <i class="fas fa-chevron-right"></i>
+        <button onclick="nextSlide()" class="w-14 h-14 rounded-full bg-blue-600 shadow-xl flex items-center justify-center text-white hover:bg-blue-700 transition-all active:scale-95">
+            <i class="fas fa-arrow-right text-xl"></i>
         </button>
     </div>
 
-    <div id="slideContainer">
-        <!-- Slides will be injected here -->
-    </div>
+    <div id="slideContainer"></div>
 
     <script>
+        /**
+         * 구글 드라이브 링크를 실제 이미지 소스로 변환하는 가장 확실한 방법 (Thumbnail 방식)
+         */
+        function formatDriveImageUrl(url) {
+            if (!url || !url.includes('drive.google.com')) return 'https://via.placeholder.com/600x800?text=No+Image';
+            
+            // 파일 ID 추출 (정규식 사용)
+            const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                const fileId = match[1];
+                // lh3 서버나 thumbnail API가 가장 안정적입니다.
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+            }
+            return url;
+        }
+
         const data = [
             {
                 "연번": "1",
@@ -86,7 +138,8 @@
                 "권역": "순창읍",
                 "장애유형": "시각",
                 "장애정도": "심하지 않은 장애",
-                "주요내용": "영유아기 고열로 인한 시청각 장애와 고혈압 당뇨 치매 등 다수의 기저질환을 앓고 있음.\n하체 근력이 약해 낙상 위험이 매우 크며 화장실 내 안전손잡이 설치가 가장 시급한 상황임. 차상위계층으로 경제적 여유가 부족하며 현재 주 5일 요양보호사의 돌봄을 받고 있음. 최우선으로 화장실 안전손잡이를 지원하기로 함. 복지관 등록을 통해 정기적인 안전 모니터링 체계를 구축하고 추가 복지 혜택을 위한 장애 재판정을 제안함."
+                "주요내용": "영유아기 고열로 인한 시청각 장애와 고혈압 당뇨 치매 등 다수의 기저질환을 앓고 있음.\n하체 근력이 약해 낙상 위험이 매우 크며 화장실 내 안전손잡이 설치가 가장 시급한 상황임. 차상위계층으로 경제적 여유가 부족하며 현재 주 5일 요양보호사의 돌봄을 받고 있음. 최우선으로 화장실 안전손잡이를 지원하기로 함. 복지관 등록을 통해 정기적인 안전 모니터링 체계를 구축함.",
+                "이미지 URL": "https://drive.google.com/file/d/17ddmcu46S3G1tfT9PFDJ12ylPXxfqBgD/view?usp=drive_link"
             },
             {
                 "연번": "2",
@@ -96,7 +149,8 @@
                 "권역": "인계면",
                 "장애유형": "청각",
                 "장애정도": "심한 장애",
-                "주요내용": "일상생활은 가능하나 큰아들의 이혼 이후 손주 양육과 가사 부담이 함께 있어 신체적.정서적 부담이 큰 상황임. 가정편의시설설치는 자녀분이 해주기로 함. 만성질환과 고령으로 지속적인 모니터링 필요함"
+                "주요내용": "일상생활은 가능하나 큰아들의 이혼 이후 손주 양육과 가사 부담이 함께 있어 신체적.정서적 부담이 큰 상황임. 가정편의시설설치는 자녀분이 해주기로 함. 만성질환과 고령으로 지속적인 모니터링 필요함",
+                "이미지 URL": "https://drive.google.com/file/d/1BlS2CiHqsaxh1yF1rFWD7GVnJH3AZQVX/view?usp=drive_link"
             },
             {
                 "연번": "3",
@@ -106,7 +160,8 @@
                 "권역": "풍산면",
                 "장애유형": "지체",
                 "장애정도": "심하지 않은 장애",
-                "주요내용": "거주 주택 내 날개미 발생으로 심리적 불안과 스트레스를 호소하여 사례회의를 통해 방역업체를 연계하여 방역을 1회 실시함. 또한 노후화된 주택으로 인해 난방 효율이 저하되어 난방비 부담이 과중한 상황으로 향후 난방비 지원 연계를 계획함. 최근 열효율개선사업 신청을 시도하였으나 토지는 배우자 명의이며 가건물로 분류되어 신청이 불가한 상태임. 추후 지속적인 모니터링 계획"
+                "주요내용": "거주 주택 내 날개미 발생으로 심리적 불안과 스트레스를 호소하여 사례회의를 통해 방역업체를 연계하여 방역을 1회 실시함. 노후 주택 난방 효율 저하로 인한 어려움이 있어 향후 난방비 지원 연계 계획.",
+                "이미지 URL": "https://drive.google.com/file/d/1bPjyFF7De7rY-zoD0V2ibEF8IHKYBX3n/view?usp=drive_link"
             },
             {
                 "연번": "4",
@@ -116,17 +171,19 @@
                 "권역": "유등면",
                 "장애유형": "시각",
                 "장애정도": "심하지 않은 장애",
-                "주요내용": "전반적으로 건강 상태가 양호하며 시니어일자리 참여를 통해 규칙적인 일상생활을 유지하고 있음. 자녀들과의 교류 및 마을 주민들과의 관계도 유지되고 있어 사회적 고립 위험은 낮은 것으로 판단됨. 특이한 문제는 확인되지 않음"
+                "주요내용": "건강 상태 양호하며 시니어일자리 참여를 통해 규칙적인 생활 유지 중. 자녀 및 주민들과의 관계가 양호하여 사회적 고립 위험 낮음. 특이 문제 확인되지 않음.",
+                "이미지 URL": "https://drive.google.com/file/d/1nsBPZSORK1D7S344eqiMobCdFPJzSOsB/view?usp=drive_link"
             },
             {
                 "연번": "5",
                 "일자(시작)": "2026-04-17",
                 "성명": "김재곤",
-                "나 age": "79",
+                "나이": "79",
                 "권역": "동계면",
                 "장애유형": "지체",
                 "장애정도": "심한 장애",
-                "주요내용": "고혈압, 당뇨와 함께 하체 관절 통증으로 인해 보행에 어려움을 겪고 있음. 위암 완치 후 블루베리 농사를 계획할 정도로 근로 의욕과 삶에 대한 태도가 긍정적임. 다만 자가 주택과 토지 소유로 인해 기초생활수급자 선정에서 탈락하여 실제 경제적 형편이 매우 곤란한 상태임. 만성적인 통증 관리와 생활비 부족 문제를 해결하기 위해 복지관 이용을 통한 자원 연계를 추진하고 정기적인 안부 확인을 통해 지속적인 모니터링을 진행하기로 함."
+                "주요내용": "하체 관절 통증으로 보행 어려움. 자가 주택 소유로 수급자 탈락하여 경제적 곤란 상태. 복지관 이용을 통한 자원 연계 및 정기적 안부 확인 진행 예정.",
+                "이미지 URL": "https://drive.google.com/file/d/1uH3BX5FShjWi7IU89AhTPNkndHHRO-rd/view?usp=drive_link"
             },
             {
                 "연번": "6",
@@ -136,7 +193,8 @@
                 "권역": "동계면",
                 "장애유형": "지체",
                 "장애정도": "심한 장애",
-                "주요내용": "잦은 낙상 등 거동에 큰 불편을 겪고 있음. 아들이 부양의무자로 분류되어 공적 급여를 받지 못해 경제적 형편이 매우 어려우나, 깊은 신앙심을 바탕으로 긍정적인 삶의 태도를 유지하고 있음. 현재 가장 시급한 문제는 신체 기능 저하에도 불구하고 실외 화장실을 이용하고 있어 겨울철 낙상 등 안전사고 위험이 매우 높다는 점임. 안전한 주거 환경 조성을 위해 지자체 화장실 보수공사 지원 사업 등 최우선적인 자원 연계가 필요한 상황임."
+                "주요내용": "잦은 낙상으로 거동 불편. 실외 화장실 이용으로 인한 안전사고 위험 매우 높음. 지자체 화장실 보수공사 지원 사업 등 최우선 자원 연계 필요.",
+                "이미지 URL": "https://drive.google.com/file/d/1iOB51bWQ5hGBXIePkXHBW_kfWjnvhkfG/view?usp=drive_link"
             },
             {
                 "연번": "7",
@@ -146,7 +204,8 @@
                 "권역": "동계면",
                 "장애유형": "지체",
                 "장애정도": "심하지 않은 장애",
-                "주요내용": "척추 수술 이력과 만성질환으로 거동이 불편함. 경제적으로 여유가 있고 자녀들의 돌봄 지지체계가 강력하여 정서적 및 일상적으로 안정된 생활을 유지 중임. 현재 가장 시급한 문제는 안전사고 위험이 있는 현관 미닫이문 잠금장치 수리와 비상용 보행기 지원임. 주거 안전성을 높이기 위해 관련 자원 연계 가능성을 파악하고, 복지관 등록 후 정기적인 안부 전화로 지속적인 모니터링을 진행할 계획임."
+                "주요내용": "척추 수술 이력으로 거동 불편. 현관 미닫이문 잠금장치 수리와 비상용 보행기 지원 시급. 복지관 등록 후 정기적인 모니터링 계획.",
+                "이미지 URL": "https://drive.google.com/file/d/1-DAqrHfUnyU6SD44R9-2v--8IAbWB5iP/view?usp=drive_link"
             },
             {
                 "연번": "8",
@@ -156,7 +215,8 @@
                 "권역": "쌍치면",
                 "장애유형": "뇌전증",
                 "장애정도": "심하지 않은 장애",
-                "주요내용": "잦은 뇌전증 발작과 손가락 부상으로 인해 청결 관리나 가사 등 일상생활 전반에 큰 어려움을 겪고 있음. 공공부조로 경제적 곤란은 덜한 편이나 최근 모친상 이후 심리적 상실감과 외로움이 깊어진 상태임. 가사 지원을 위해 현재 장애인 활동지원서비스를 신청하고 결과를 기다리는 중임."
+                "주요내용": "뇌전증 발작 및 손가락 부상으로 일상생활 어려움. 모친상 이후 심리적 상실감 큼. 장애인 활동지원서비스 신청 후 대기 중.",
+                "이미지 URL": "https://drive.google.com/file/d/1W-Z0kA_4rn-Ohr_-78RjklJgZGHhpoVD/view?usp=drive_link"
             }
         ];
 
@@ -164,34 +224,26 @@
         const container = document.getElementById('slideContainer');
 
         function createIntroSlide() {
-            const types = [...new Set(data.map(item => item.장애유형))];
-            const regions = [...new Set(data.map(item => item.권역))];
-            
             return `
-                <div class="slide active items-center justify-center p-8 bg-gradient-to-br from-blue-600 to-indigo-800">
-                    <div class="glass-card p-12 max-w-4xl w-full text-center">
-                        <div class="mb-6 inline-block p-4 rounded-2xl bg-blue-100 text-blue-600">
-                            <i class="fas fa-clipboard-list fa-3x"></i>
-                        </div>
-                        <h1 class="text-4xl font-bold text-gray-800 mb-4">2026년 4월 복지 상담 사례 브리핑</h1>
-                        <p class="text-xl text-gray-600 mb-12">취약계층 안전 모니터링 및 자원 연계 현황</p>
+                <div class="slide active items-center justify-center p-8 bg-gradient-to-br from-slate-800 to-slate-900">
+                    <div class="glass-card p-16 max-w-4xl w-full text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
+                        <h4 class="text-blue-500 font-bold tracking-widest uppercase mb-4">Case Briefing</h4>
+                        <h1 class="text-5xl font-extrabold text-gray-800 mb-6 tracking-tight">4월 신규 재가장애인을<br>소개합니다</h1>
                         
-                        <div class="grid grid-cols-3 gap-6">
-                            <div class="p-6 bg-blue-50 rounded-2xl">
-                                <p class="text-sm text-blue-600 font-semibold mb-1">총 상담 건수</p>
-                                <p class="text-3xl font-bold text-blue-900">${data.length}건</p>
+                        <div class="flex justify-center gap-12 border-t border-gray-100 pt-12">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-400 mb-1 font-semibold uppercase">Total Cases</p>
+                                <p class="text-4xl font-bold text-gray-800">${data.length}</p>
                             </div>
-                            <div class="p-6 bg-indigo-50 rounded-2xl">
-                                <p class="text-sm text-indigo-600 font-semibold mb-1">상담 권역</p>
-                                <p class="text-3xl font-bold text-indigo-900">${regions.length}개 면/읍</p>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-400 mb-1 font-semibold uppercase">Regions</p>
+                                <p class="text-4xl font-bold text-gray-800">5개 권역</p>
                             </div>
-                            <div class="p-6 bg-purple-50 rounded-2xl">
-                                <p class="text-sm text-purple-600 font-semibold mb-1">평균 연령</p>
-                                <p class="text-3xl font-bold text-purple-900">74세</p>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-400 mb-1 font-semibold uppercase">Period</p>
+                                <p class="text-4xl font-bold text-gray-800">26.04</p>
                             </div>
-                        </div>
-                        <div class="mt-12 text-sm text-gray-400">
-                            방향키(← →)를 사용하거나 버튼을 눌러 상세 내용을 확인하세요.
                         </div>
                     </div>
                 </div>
@@ -200,61 +252,76 @@
 
         function createDataSlides() {
             return data.map((item, index) => `
-                <div class="slide items-center justify-center p-8">
-                    <div class="glass-card p-8 md:p-12 max-w-5xl w-full grid md:grid-cols-3 gap-8">
-                        <!-- Profile Section -->
-                        <div class="md:col-span-1 border-r border-gray-100 pr-8">
-                            <div class="flex items-center gap-4 mb-8">
-                                <div class="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-2xl font-bold">
-                                    ${item.성명[0]}
-                                </div>
-                                <div>
-                                    <h2 class="text-2xl font-bold text-gray-800">${item.성명} <span class="text-sm font-normal text-gray-500">(${item.나이}세)</span></h2>
-                                    <p class="text-blue-600 font-semibold">${item.권역}</p>
-                                </div>
+                <div class="slide items-center justify-center p-4 md:p-8">
+                    <div class="glass-card max-w-6xl w-full flex flex-col md:flex-row h-auto md:h-[750px]">
+                        <!-- Image Area -->
+                        <div class="md:w-5/12 bg-gray-50 p-6 flex flex-col">
+                            <div class="case-image-container flex-grow">
+                                <div class="loader"></div>
+                                <img src="${formatDriveImageUrl(item["이미지 URL"])}" 
+                                     alt="${item.성명} 현장" 
+                                     class="case-image opacity-0 transition-opacity duration-500"
+                                     onload="this.previousElementSibling.remove(); this.classList.remove('opacity-0')"
+                                     onerror="handleImageError(this)">
                             </div>
-                            
-                            <div class="space-y-4">
-                                <div class="p-4 bg-gray-50 rounded-xl">
-                                    <p class="text-xs text-gray-500 mb-1">장애 정보</p>
-                                    <p class="font-semibold text-gray-700">${item.장애유형} / ${item.장애정도}</p>
-                                </div>
-                                <div class="p-4 bg-gray-50 rounded-xl">
-                                    <p class="text-xs text-gray-500 mb-1">상담 일자</p>
-                                    <p class="font-semibold text-gray-700">${item["일자(시작)"]}</p>
-                                </div>
-                                <div class="p-4 bg-gray-50 rounded-xl">
-                                    <p class="text-xs text-gray-500 mb-1">관리 번호</p>
-                                    <p class="font-semibold text-gray-700">CASE-${item.연번.padStart(3, '0')}</p>
-                                </div>
-                            </div>
+                            <p class="mt-4 text-xs text-gray-400 text-center italic">현장 방문 증빙 사진</p>
                         </div>
 
-                        <!-- Content Section -->
-                        <div class="md:col-span-2">
-                            <div class="mb-6">
-                                <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                    <i class="fas fa-file-alt text-blue-500"></i> 주요 상담 및 사례 내용
-                                </h3>
-                                <div class="bg-blue-50 p-6 rounded-2xl text-gray-700 leading-relaxed min-h-[200px]">
-                                    ${item.주요내용.replace(/\n/g, '<br>')}
+                        <!-- Content Area -->
+                        <div class="md:w-7/12 p-8 md:p-12 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-start mb-8">
+                                    <div>
+                                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold mb-3 inline-block">CASE #${item.연번}</span>
+                                        <h2 class="text-5xl font-bold text-gray-800">${item.성명} <span class="text-2xl font-normal text-gray-400 ml-2">${item.나이}세</span></h2>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-blue-600 font-extrabold text-xl mb-1">${item.권역}</p>
+                                        <p class="text-gray-400 text-sm font-medium"><i class="far fa-calendar-alt mr-1"></i> ${item["일자(시작)"]}</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 mb-10">
+                                    <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                        <p class="text-xs text-gray-400 font-bold uppercase mb-2">장애 유형</p>
+                                        <p class="font-bold text-gray-800 text-lg">${item.장애유형}</p>
+                                    </div>
+                                    <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                        <p class="text-xs text-gray-400 font-bold uppercase mb-2">장애 정도</p>
+                                        <p class="font-bold text-gray-800 text-lg">${item.장애정도}</p>
+                                    </div>
+                                </div>
+
+                                <div class="mb-6">
+                                    <h3 class="text-sm font-bold text-gray-400 mb-4 flex items-center gap-2 uppercase tracking-widest">
+                                        <i class="fas fa-comment-dots text-blue-400"></i> 주요 상담 및 조치 내용
+                                    </h3>
+                                    <div class="text-gray-700 leading-relaxed text-xl bg-blue-50/50 p-8 rounded-3xl border border-blue-100/50 relative">
+                                        <i class="fas fa-quote-left absolute top-4 left-4 text-blue-200 text-2xl opacity-50"></i>
+                                        <p class="relative z-10 font-medium">
+                                            ${item.주요내용.replace(/\n/g, '<br>')}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="flex items-start gap-3">
-                                    <div class="mt-1 text-green-500"><i class="fas fa-check-circle"></i></div>
-                                    <p class="text-sm text-gray-600 font-medium">대상자 욕구 파악 완료</p>
+
+                            <div class="pt-6 border-t border-gray-100 flex items-center justify-between">
+                                <div class="flex items-center gap-3 text-green-600 font-bold">
+                                    <i class="fas fa-check-circle text-xl"></i> 
+                                    <span class="text-sm">사례 관리 및 모니터링 진행 중</span>
                                 </div>
-                                <div class="flex items-start gap-3">
-                                    <div class="mt-1 text-green-500"><i class="fas fa-check-circle"></i></div>
-                                    <p class="text-sm text-gray-600 font-medium">지역 자원 연계 추진 중</p>
-                                </div>
+                                <span class="text-gray-300 text-xs font-mono">${index + 1} / ${data.length + 1}</span>
                             </div>
                         </div>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function handleImageError(img) {
+            img.previousElementSibling?.remove();
+            img.src = 'https://via.placeholder.com/600x800?text=Image+Access+Denied';
+            console.error('이미지 로드 실패: 구글 드라이브 파일의 공유 권한이 "링크가 있는 모든 사용자"로 설정되어 있는지 확인하세요.');
         }
 
         // Initialize Slides
@@ -274,20 +341,14 @@
         }
 
         function nextSlide() {
-            if (currentSlide < slides.length - 1) {
-                showSlide(currentSlide + 1);
-            } else {
-                showSlide(0); // Loop to start
-            }
+            if (currentSlide < slides.length - 1) showSlide(currentSlide + 1);
+            else showSlide(0);
         }
 
         function prevSlide() {
-            if (currentSlide > 0) {
-                showSlide(currentSlide - 1);
-            }
+            if (currentSlide > 0) showSlide(currentSlide - 1);
         }
 
-        // Keyboard Navigation
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
             if (e.key === 'ArrowLeft') prevSlide();
